@@ -317,7 +317,6 @@ class InfiniiVision(VisaInstrument):
         name: str,
         address: str,
         timeout: float = 20,
-        channels: int = 4,
         silence_pyvisapy_warning: bool = False,
         **kwargs: Any,
     ):
