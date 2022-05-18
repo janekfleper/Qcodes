@@ -352,6 +352,24 @@ class InfiniiVision(VisaInstrument):
             call_cmd=":stop"
         )
 
+        self.recall = Parameter(
+            name="recall",
+            instrument=self,
+            label=f"Restore a saved instrument state",
+            set_cmd="*rcl {}",
+            get_cmd=False,
+            vals=vals.Ints(0, 9),
+        )
+
+        self.save = Parameter(
+            name="save",
+            instrument=self,
+            label=f"Save the current state of the instrument",
+            set_cmd="*sav {}",
+            get_cmd=False,
+            vals=vals.Ints(0, 9),
+        )
+
         # Query the oscilloscope parameters
         # Set sample rate, bandwidth and memory depth limits
         #self._query_capabilities()
