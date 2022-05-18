@@ -9,6 +9,11 @@ from qcodes.instrument.function import Function
 from qcodes.instrument.parameter import Parameter
 from qcodes.utils.helpers import create_on_off_val_mapping
 
+CHANNEL_COUNT = {
+    'EDUX1052A': 2, 'EDUX1052G': 2,
+    'DSOX1202A': 2, 'DSOX1202G': 2,
+    'DSOX1204A': 4, 'DSOX1204G': 4,
+}
 
 WAVEFORM_FORMAT = {0:'byte', 1:'word', 4:'ascii'}
 ACQUISITION_TYPE = {0:'normal', 1:'peak', 2:'average', 3:'hresolution'}
@@ -328,6 +333,9 @@ class InfiniiVision(VisaInstrument):
         super().__init__(name, address, timeout=timeout, terminator="\n", **kwargs)
         self.connect_message()
 
+        self.model = self.IDN()['model']
+        self.n_channels = CHANNEL_COUNT[self.model]
+
         self.digitize = Function(
             name="digitize",
             instrument=self,
@@ -370,16 +378,8 @@ class InfiniiVision(VisaInstrument):
             vals=vals.Ints(0, 9),
         )
 
-        # Query the oscilloscope parameters
-        # Set sample rate, bandwidth and memory depth limits
-        #self._query_capabilities()
-        # Number of channels can't be queried on most older scopes. Use a parameter
-        # for now.
-        self.no_channels = channels
-
-        # Channels
         _channels = ChannelList(self, "channels", Channel, snapshotable=False)
-        for i in range(1, self.no_channels + 1):
+        for i in range(1, self.n_channels + 1):
             channel = Channel(self, f"channel{i}", i)
             _channels.append(channel)
             self.add_submodule(f"ch{i}", channel)
