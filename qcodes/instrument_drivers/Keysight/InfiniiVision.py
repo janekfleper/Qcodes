@@ -328,6 +328,30 @@ class InfiniiVision(VisaInstrument):
         super().__init__(name, address, timeout=timeout, terminator="\n", **kwargs)
         self.connect_message()
 
+        self.digitize = Function(
+            name="digitize",
+            instrument=self,
+            call_cmd=":digitize"
+        )
+
+        self.run = Function(
+            name="run",
+            instrument=self,
+            call_cmd=":run"
+        )
+
+        self.single = Function(
+            name="single",
+            instrument=self,
+            call_cmd=":single"
+        )
+
+        self.stop = Function(
+            name="stop",
+            instrument=self,
+            call_cmd=":stop"
+        )
+
         # Query the oscilloscope parameters
         # Set sample rate, bandwidth and memory depth limits
         #self._query_capabilities()
