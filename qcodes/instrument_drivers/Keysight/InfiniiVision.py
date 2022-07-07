@@ -35,56 +35,56 @@ class Acquire(InstrumentModule):
         self.complete = Parameter(
             name="complete",
             instrument=self,
-            label="Acquisition completion status",
             set_cmd=False,
             get_cmd=":acquire:complete?",
             get_parser=lambda x: bool(int(x)//100),
+            docstring="Acquisition completion status",
         )
 
         self.count = Parameter(
             name="count",
             instrument=self,
-            label="Acquisition count in average mode",
             set_cmd=f":acquire:count {{}}",
             get_cmd=":acquire:count?",
             vals=vals.Ints(2, 65536),
             get_parser=int,
+            docstring="Acquisition count in average mode",
         )
 
         self.mode = Parameter(
             name="mode",
             instrument=self,
-            label="Acquisition mode",
             set_cmd=f":acquire:mode {{}}",
             get_cmd=":acquire:mode?",
             vals=vals.Enum("rtime", "segmented"),
+            docstring="Acquisition mode",
         )
 
         self.points = Parameter(
             name="points",
             instrument=self,
-            label="Number of acquired points",
             set_cmd=None,
             get_cmd=":acquire:points?",
             get_parser=int,
+            docstring="Number of acquired points",
         )
 
         self.srate = Parameter(
             name="srate",
             instrument=self,
-            label="Sampling rate",
             set_cmd=None,
             get_cmd=":acquire:srate?",
             get_parser=float,
+            docstring="Sampling rate",
         )
 
         self.type = Parameter(
             name="type",
             instrument=self,
-            label="Acquisition type",
             set_cmd=f":acquire:type {{}}",
             get_cmd=":acquire:type?",
             vals=vals.Enum("normal", "average", "hresolution", "peak"),
+            docstring="Acquisition type",
         )
 
 class Waveform(InstrumentModule):
@@ -94,19 +94,19 @@ class Waveform(InstrumentModule):
         self.byteorder = Parameter(
             name="byteorder",
             instrument=self,
-            label="Byte order of WORD data",
             set_cmd=f":waveform:byteorder {{}}",
             get_cmd=":waveform:byteorder?",
             vals=vals.Enum("lsbfirst", "msbfirst"),
+            docstring="Byte order of WORD data",
         )
 
         self.count = Parameter(
             name="count",
             instrument=self,
-            label="Count used for the acquired waveform",
             set_cmd=None,
             get_cmd=":waveform:count?",
             get_parser=int,
+            docstring="Count used for the acquired waveform",
         )
 
         self.data = Function(
@@ -118,26 +118,25 @@ class Waveform(InstrumentModule):
         self.format = Parameter(
             name="format",
             instrument=self,
-            label="Data transmission mode for waveform data points",
             set_cmd=f":waveform:format {{}}",
             get_cmd=":waveform:format?",
             vals=vals.Enum("word", "byte", "ascii"),
+            docstring="Data transmission mode for waveform data points",
         )
 
         self.points = Parameter(
             name="points",
             instrument=self,
-            label="Number of points of the waveform",
             set_cmd=f":waveform:points {{}}",
             get_cmd=":waveform:points?",
             vals=vals.Ints(100, 2000000),
             get_parser=int,
+            docstring="Number of points of the waveform",
         )
 
         self.points_mode = Parameter(
             name="points_mode",
             instrument=self,
-            label="???",
             set_cmd=f":waveform:points:mode {{}}",
             get_cmd=":waveform:points:mode?",
             vals=vals.Enum("normal", "maximum", "raw"),
@@ -146,18 +145,18 @@ class Waveform(InstrumentModule):
         self.preamble = Parameter(
             name="preamble",
             instrument=self,
-            label="Read the waveform properties",
             set_cmd=False,
             get_cmd=":waveform:preamble?",
+            docstring="Read the waveform properties",
         )
 
         self.source = Parameter(
             name="source",
             instrument=self,
-            label="Source for the waveform",
             set_cmd=f":waveform:source {{}}",
             get_cmd=":waveform:source?",
-            vals=vals.Strings()
+            vals=vals.Strings(),
+            docstring="Source for the waveform",
         )
 
     def header(self):
@@ -178,113 +177,113 @@ class Channel(InstrumentChannel):
         self.bandwidth = Parameter(
             name="bandwidth",
             instrument=self,
-            label=f"Channel {channel} bandwidth",
             set_cmd=f":channel{channel}:bandwidth {{}}",
             get_cmd=f":channel{channel}:bandwidth?",
             vals=vals.Enum(25e6),
             get_parser=float,
+            docstring=f"Channel {channel} bandwidth",
         )
 
         self.bwlimit = Parameter(
             name="bwlimit",
             instrument=self,
-            label=f"Enable channel {channel} bandwidth limit",
             set_cmd=f":channel{channel}:bwlimit {{}}",
             get_cmd=f":channel{channel}:bwlimit?",
             val_mapping=create_on_off_val_mapping(on_val=1, off_val=0),
+            docstring=f"Enable channel {channel} bandwidth limit",
         )
 
         self.coupling = Parameter(
             name="coupling",
             instrument=self,
-            label=f"Channel {channel} input coupling",
             set_cmd=f":channel{channel}:coupling {{}}",
             get_cmd=f":channel{channel}:coupling?",
             vals=vals.Enum("AC", "DC"),
+            docstring=f"Channel {channel} input coupling",
         )
 
         self.display = Parameter(
             name="display",
             instrument=self,
-            label=f"Display channel {channel}",
             set_cmd=f":channel{channel}:display {{}}",
             get_cmd=f":channel{channel}:display?",
             val_mapping=create_on_off_val_mapping(on_val=1, off_val=0),
+            docstring=f"Enable/disable display of channel {channel}",
         )
 
         self.impedance = Parameter(
             name="impedance",
             instrument=self,
-            label=f"Channel {channel} input impedance",
             set_cmd=f":channel{channel}:impedance {{}}",
             get_cmd=f":channel{channel}:impedance?",
             vals=vals.Enum("onemeg"),
+            docstring=f"Channel {channel} input impedance",
         )
 
         self.invert = Parameter(
             name="invert",
             instrument=self,
-            label=f"Invert channel {channel}",
             set_cmd=f":channel{channel}:invert {{}}",
             get_cmd=f":channel{channel}:invert?",
             val_mapping=create_on_off_val_mapping(on_val=1, off_val=0),
+            docstring=f"Invert channel {channel}",
         )
 
         self.label = Parameter(
             name="label",
             instrument=self,
-            label=f"Channel {channel} label",
             set_cmd=f":channel{channel}:label {{}}",
             get_cmd=f":channel{channel}:label?",
             vals=vals.Strings(max_length=10),
+            docstring=f"Channel {channel} label",
         )
 
         self.offset = Parameter(
             name="offset",
             instrument=self,
-            label=f"Channel {channel} offset",
             set_cmd=f":channel{channel}:offset {{}}",
             get_cmd=f":channel{channel}:offset?",
             vals=vals.MultiType(vals.Numbers(), vals.Strings()),
             get_parser=float,
+            docstring=f"Channel {channel} voltage offset",
         )
 
         self.range = Parameter(
             name="range",
             instrument=self,
-            label=f"Channel {channel} full-scale range",
             set_cmd=f":channel{channel}:range {{}}",
             get_cmd=f":channel{channel}:range?",
             vals=vals.MultiType(vals.Numbers(), vals.Strings()),
             get_parser=float,
+            docstring=f"Channel {channel} full-scale range",
         )
 
         self.scale = Parameter(
             name="scale",
             instrument=self,
-            label=f"Channel {channel} vertical scale (unit per division)",
             set_cmd=f":channel{channel}:scale {{}}",
             get_cmd=f":channel{channel}:scale?",
             vals=vals.MultiType(vals.Numbers(), vals.Strings()),
             get_parser=float,
+            docstring=f"Set the vertical scale (unit per division)",
         )
 
         self.unit = Parameter(
             name="unit",
             instrument=self,
-            label=f"Channel {channel} measurement unit",
             set_cmd=f":channel{channel}:unit {{}}",
             get_cmd=f":channel{channel}:unit",
             vals=vals.Enum("volt", "ampere"),
+            label=f"Select the measurement unit for the connected probe",
         )
 
         self.vernier = Parameter(
             name="vernier",
             instrument=self,
-            label=f"Channel {channel} vernier (fine adjustment)",
             set_cmd=f":channel{channel}:vernier {{}}",
             get_cmd=f":channel{channel}:vernier?",
             val_mapping=create_on_off_val_mapping(on_val=1, off_val=0),
+            docstring=f"Enable/disable the vernier (fine vertical adjustment)",
         )
 
     def read(self, raw=False):
@@ -362,19 +361,19 @@ class InfiniiVision(VisaInstrument):
         self.recall = Parameter(
             name="recall",
             instrument=self,
-            label=f"Restore a saved instrument state",
             set_cmd="*rcl {}",
             get_cmd=False,
             vals=vals.Ints(0, 9),
+            docstring=f"Restore a saved instrument state",
         )
 
         self.save = Parameter(
             name="save",
             instrument=self,
-            label=f"Save the current state of the instrument",
             set_cmd="*sav {}",
             get_cmd=False,
             vals=vals.Ints(0, 9),
+            docstring=f"Save the current state of the instrument",
         )
 
         _channels = ChannelList(self, "channels", Channel, snapshotable=False)
