@@ -49,14 +49,13 @@ module = [
     "qcodes.instrument_drivers.Keysight.keysightb1500.message_builder.*",
     "qcodes.instrument_drivers.oxford.mercuryiPS",
     "qcodes.instrument_drivers.test",
-    "qcodes.instrument_drivers.ZI.*",
     "qcodes.loops",
     "qcodes.math_utils.*",
     "qcodes.measure",
     "qcodes.plots.*",
     "qcodes.tests.*",
     "qcodes.utils.magic",
-    "qcodes.utils.slack",
+    "qcodes.extensions.slack",
 
 ]
 disallow_untyped_defs = false
@@ -82,6 +81,8 @@ name = "QCoDeS"
 directory = "docs/changes/newsfragments"
 single_file = true
 filename = "docs/changes/{version}.rst"
+issue_format = ":pr:`{issue}`"
+
 [[tool.towncrier.type]]
 directory = "breaking"
 name = "Breaking Changes:"

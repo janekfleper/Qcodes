@@ -4,14 +4,14 @@ from typing import Any, Iterable, Tuple, Union
 
 import numpy as np
 
-from qcodes import VisaInstrument
-from qcodes.instrument.parameter import (
+from qcodes.instrument import VisaInstrument
+from qcodes.parameters import (
     ArrayParameter,
     Parameter,
     ParameterWithSetpoints,
     ParamRawDataType,
 )
-from qcodes.utils.validators import Arrays, ComplexNumbers, Enum, Ints, Numbers, Strings
+from qcodes.validators import Arrays, ComplexNumbers, Enum, Ints, Numbers, Strings
 
 
 class ChannelTrace(ParameterWithSetpoints):
