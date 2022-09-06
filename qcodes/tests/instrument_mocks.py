@@ -284,8 +284,8 @@ class DummyChannel(InstrumentChannel):
     A single dummy channel implementation
     """
 
-    def __init__(self, parent, name, channel):
-        super().__init__(parent, name)
+    def __init__(self, parent, name, channel, **kwargs):
+        super().__init__(parent, name, **kwargs)
 
         self._channel = channel
 
@@ -426,6 +426,9 @@ class DummyChannel(InstrumentChannel):
 
         self.add_function(name='log_my_name',
                           call_cmd=partial(log.debug, f'{name}'))
+
+    def turn_on(self) -> None:
+        pass
 
 
 class DummyChannelInstrument(Instrument):

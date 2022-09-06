@@ -1,4 +1,7 @@
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Sequence, Union
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from qcodes.metadatable import Metadatable
 from qcodes.validators import Validator, validate_all
@@ -17,10 +20,7 @@ class Function(Metadatable):
     map to simple commands like ``*RST`` (reset) or those with just a few
     arguments.
     It requires a fixed argument count, and positional args
-    only. If your case is more complicated, you're probably better off
-    simply making a new method in your Instrument subclass definition.
-    The function validators.validate_all can help reduce boilerplate code
-    in this case.
+    only.
 
     You execute this function object like a normal function, or use its
     .call method.
@@ -28,6 +28,12 @@ class Function(Metadatable):
     Note:
         Parsers only apply if call_cmd is a string. The function form of
         call_cmd should do its own parsing.
+
+    Note:
+        We do not recommend the usage of Function for any new driver.
+        Function does not add any significant features over a method
+        defined on the class.
+
 
     Args:
         name: the local name of this function
@@ -68,12 +74,12 @@ class Function(Metadatable):
     def __init__(
         self,
         name: str,
-        instrument: Optional["InstrumentBase"] = None,
-        call_cmd: Optional[Union[str, Callable[..., Any]]] = None,
-        args: Optional[Sequence[Validator[Any]]] = None,
-        arg_parser: Optional[Callable[..., Any]] = None,
-        return_parser: Optional[Callable[..., Any]] = None,
-        docstring: Optional[str] = None,
+        instrument: InstrumentBase | None = None,
+        call_cmd: str | Callable[..., Any] | None = None,
+        args: Sequence[Validator[Any]] | None = None,
+        arg_parser: Callable[..., Any] | None = None,
+        return_parser: Callable[..., Any] | None = None,
+        docstring: str | None = None,
         **kwargs: Any
     ):
         super().__init__(**kwargs)
@@ -97,9 +103,9 @@ class Function(Metadatable):
 
     def _set_call(
         self,
-        call_cmd: Optional[Union[str, Callable[..., Any]]],
-        arg_parser: Optional[Callable[..., Any]],
-        return_parser: Optional[Callable[..., Any]],
+        call_cmd: str | Callable[..., Any] | None,
+        arg_parser: Callable[..., Any] | None,
+        return_parser: Callable[..., Any] | None,
     ) -> None:
         if self._instrument:
             ask_or_write = self._instrument.write
@@ -157,7 +163,7 @@ class Function(Metadatable):
         """
         return self.__call__(*args)
 
-    def get_attrs(self) -> List[str]:
+    def get_attrs(self) -> list[str]:
         """
         Attributes recreated as properties in the RemoteFunction proxy.
 
