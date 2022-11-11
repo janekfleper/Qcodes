@@ -310,7 +310,7 @@ class DataSet(BaseDataSet):
         *,
         snapshot: Mapping[Any, Any],
         interdeps: InterDependencies_,
-        shapes: Shapes = None,
+        shapes: Shapes | None = None,
         parent_datasets: Sequence[Mapping[Any, Any]] = (),
         write_in_background: bool = False,
     ) -> None:
@@ -531,9 +531,9 @@ class DataSet(BaseDataSet):
         self.conn.close()
         self.conn = connect(path_to_db, self._debug)
 
-    def set_interdependencies(self,
-                              interdeps: InterDependencies_,
-                              shapes: Shapes = None) -> None:
+    def set_interdependencies(
+        self, interdeps: InterDependencies_, shapes: Shapes | None = None
+    ) -> None:
         """
         Set the interdependencies object (which holds all added
         parameters and their relationships) of this dataset and
@@ -1174,11 +1174,14 @@ class DataSet(BaseDataSet):
         """
         Remove all subscribers
         """
-        sql = "select * from sqlite_master where type = 'trigger';"
+        sql = """
+        SELECT name FROM sqlite_master
+        WHERE type = 'trigger'
+        """
         triggers = atomic_transaction(self.conn, sql).fetchall()
         with atomic(self.conn) as conn:
-            for trigger in triggers:
-                remove_trigger(conn, trigger['name'])
+            for (trigger,) in triggers:
+                remove_trigger(conn, trigger)
             for sub in self.subscribers.values():
                 sub.schedule_stop()
                 sub.join()
@@ -1770,15 +1773,27 @@ def generate_dataset_table(
     Returns: ASCII art table of information about the supplied guids.
     """
     from tabulate import tabulate
-    headers = ["captured_run_id", "captured_counter", "experiment_name",
-               "sample_name",
-               "sample_id", "location", "work_station"]
+
+    headers = (
+        "captured_run_id",
+        "captured_counter",
+        "experiment_name",
+        "sample_name",
+        "location",
+        "work_station",
+    )
     table = []
     for guid in guids:
         ds = load_by_guid(guid, conn=conn)
         parsed_guid = parse_guid(guid)
-        table.append([ds.captured_run_id, ds.captured_counter, ds.exp_name,
-                      ds.sample_name,
-                      parsed_guid['sample'], parsed_guid['location'],
-                      parsed_guid['work_station']])
+        table.append(
+            [
+                ds.captured_run_id,
+                ds.captured_counter,
+                ds.exp_name,
+                ds.sample_name,
+                parsed_guid["location"],
+                parsed_guid["work_station"],
+            ]
+        )
     return tabulate(table, headers=headers)
