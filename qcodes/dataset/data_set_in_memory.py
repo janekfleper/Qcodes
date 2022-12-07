@@ -8,7 +8,7 @@ import time
 import warnings
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
@@ -386,10 +386,10 @@ class DataSetInMem(BaseDataSet):
             data = xr_data[datavar]
             output[str(datavar)][str(datavar)] = data.data
             coords_unexpanded = []
-            for coord in data.coords:
-                coords_unexpanded.append(xr_data[coord].data)
+            for coord_name in data.dims:
+                coords_unexpanded.append(xr_data[coord_name].data)
             coords_arrays = np.meshgrid(*coords_unexpanded, indexing="ij")
-            for coord_name, coord_array in zip(data.coords, coords_arrays):
+            for coord_name, coord_array in zip(data.dims, coords_arrays):
                 output[str(datavar)][str(coord_name)] = coord_array
         return output
 
@@ -844,6 +844,7 @@ class DataSetInMem(BaseDataSet):
         *params: str | ParamSpec | ParameterBase,
         start: int | None = None,
         end: int | None = None,
+        callback: Callable[[float], None] | None = None,
     ) -> ParameterData:
         self._warn_if_set(*params, start=start, end=end)
         return self.cache.data()
