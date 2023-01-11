@@ -6,11 +6,15 @@ jobs:
   lint-with-darker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 0
-      - uses: akaihola/darker@1.5.1
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - uses: akaihola/darker@1.6.1
         with:
           options: "--check --diff"
           src: "./qcodes"
           revision: "origin/master..."
+          version: "@e3c210b5c1b91400c3f317b2474c10ab23bec1cf"

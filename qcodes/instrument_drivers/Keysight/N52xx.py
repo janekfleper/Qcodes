@@ -105,13 +105,14 @@ class FormattedSweep(ParameterWithSetpoints):
         """
         return
 
-    def get_raw(self) -> Sequence[float]:
+    def get_raw(self) -> np.ndarray:
         if self.instrument is None:
             raise RuntimeError("Cannot get data without instrument")
         root_instr = self.instrument.root_instrument
         # Check if we should run a new sweep
-        if root_instr.auto_sweep():
-            prev_mode = self.instrument.run_sweep()
+        auto_sweep = root_instr.auto_sweep()
+
+        prev_mode = self.instrument.run_sweep()
         # Ask for data, setting the format to the requested form
         self.instrument.format(self.sweep_format)
         data = root_instr.visa_handle.query_binary_values('CALC:DATA? FDATA',
@@ -119,13 +120,13 @@ class FormattedSweep(ParameterWithSetpoints):
                                                           is_big_endian=True)
         data = np.array(data)
         # Restore previous state if it was changed
-        if root_instr.auto_sweep():
+        if auto_sweep:
             root_instr.sweep_mode(prev_mode)
 
         return data
 
 
-class PNAPort(InstrumentChannel):
+class KeysightPNAPort(InstrumentChannel):
     """
     Allow operations on individual PNA ports.
     Note: This can be expanded to include a large number of extra parameters...
@@ -166,7 +167,11 @@ class PNAPort(InstrumentChannel):
                                          max_value=max_power)
 
 
-class PNATrace(InstrumentChannel):
+PNAPort = KeysightPNAPort
+"Alis for backwards compatibility"
+
+
+class KeysightPNATrace(InstrumentChannel):
     """
     Allow operations on individual PNA traces.
     """
@@ -352,6 +357,10 @@ class PNATrace(InstrumentChannel):
         self.write(f"CALC:PAR:MOD:EXT \"{val}\"")
 
 
+PNATrace = KeysightPNATrace
+"Alias for backwards compatiblitly"
+
+
 class PNABase(VisaInstrument):
     """
     Base qcodes driver for Agilent/Keysight series PNAs
@@ -379,10 +388,11 @@ class PNABase(VisaInstrument):
                       name, min_power, max_power, min_freq, max_freq)
 
         #Ports
-        ports = ChannelList(self, "PNAPorts", PNAPort)
-        for port_num in range(1, nports+1):
-            port = PNAPort(self, f"port{port_num}", port_num,
-                           min_power, max_power)
+        ports = ChannelList(self, "PNAPorts", KeysightPNAPort)
+        for port_num in range(1, nports + 1):
+            port = KeysightPNAPort(
+                self, f"port{port_num}", port_num, min_power, max_power
+            )
             ports.append(port)
             self.add_submodule(f"port{port_num}", port)
         self.add_submodule("ports", ports.to_channel_tuple())
@@ -556,7 +566,7 @@ class PNABase(VisaInstrument):
                            vals=Numbers(min_value=1, max_value=24))
         # Note: Traces will be accessed through the traces property which
         # updates the channellist to include only active trace numbers
-        self._traces = ChannelList(self, "PNATraces", PNATrace)
+        self._traces = ChannelList(self, "PNATraces", KeysightPNATrace)
         self.add_submodule("traces", self._traces)
         # Add shortcuts to first trace
         trace1 = self.traces[0]
@@ -611,8 +621,7 @@ class PNABase(VisaInstrument):
         self._traces.clear()
         for trace_name in parlist[::2]:
             trace_num = self.select_trace_by_name(trace_name)
-            pna_trace = PNATrace(self, f"tr{trace_num}",
-                                 trace_name, trace_num)
+            pna_trace = KeysightPNATrace(self, f"tr{trace_num}", trace_name, trace_num)
             self._traces.append(pna_trace)
 
         # Restore the active trace if there was one

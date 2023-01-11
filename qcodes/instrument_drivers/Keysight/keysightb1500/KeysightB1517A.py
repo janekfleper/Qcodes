@@ -15,7 +15,7 @@ from typing import (
 )
 
 import numpy as np
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 import qcodes.validators as vals
 from qcodes.instrument import InstrumentChannel
@@ -39,15 +39,18 @@ from .KeysightB1500_sampling_measurement import SamplingMeasurement
 from .message_builder import MessageBuilder
 
 if TYPE_CHECKING:
-    import qcodes.instrument_drivers.Keysight.keysightb1500
+    from qcodes.instrument_drivers.Keysight.keysightb1500.KeysightB1500_base import (
+        KeysightB1500,
+    )
 
 
-class SweepSteps(TypedDict, total=False):
+class SweepSteps(TypedDict):
     """
     A dictionary holding all the parameters that specifies the staircase
     sweep (WV).
     """
-    chan: Union[int, constants.ChNr]
+
+    chan: NotRequired[Union[int, constants.ChNr]]
     sweep_mode: Union[constants.SweepMode, int]
     sweep_range: Union[constants.VOutputRange, int]
     sweep_start: float
@@ -57,9 +60,8 @@ class SweepSteps(TypedDict, total=False):
     power_compliance: Optional[float]
 
 
-class IVSweeper(InstrumentChannel):
-    def __init__(self, parent: 'B1517A',
-                 name: str, **kwargs: Any):
+class KeysightB1500IVSweeper(InstrumentChannel):
+    def __init__(self, parent: "KeysightB1517A", name: str, **kwargs: Any):
         super().__init__(parent, name, **kwargs)
         self._sweep_step_parameters: SweepSteps = \
             {"sweep_mode": constants.SweepMode.LINEAR,
@@ -472,12 +474,14 @@ class IVSweeper(InstrumentChannel):
         cmd = msg.message
         response = self.ask(cmd)
         out_dict = self._get_sweep_steps_parser(response)
-        if out_dict['chan'] != self.parent.channels[0]:
-            raise ValueError('Sweep parameters (WV) such as '
-                             'sweep_mode, sweep_range, sweep_start, '
-                             'sweep_end, sweep_steps etc are not set for '
-                             'this SMU.')
-        return out_dict[name]
+        if out_dict.get("chan") != self.parent.channels[0]:
+            raise ValueError(
+                "Sweep parameters (WV) such as "
+                "sweep_mode, sweep_range, sweep_start, "
+                "sweep_end, sweep_steps etc are not set for "
+                "this SMU."
+            )
+        return out_dict.get(name)
 
     @staticmethod
     def _get_sweep_steps_parser(response: str) -> SweepSteps:
@@ -494,26 +498,35 @@ class IVSweeper(InstrumentChannel):
         if not match:
             raise ValueError('Sweep steps (WV) not found.')
 
-        out_dict: SweepSteps = {}
         resp_dict = match.groupdict()
 
-        out_dict['chan'] = int(resp_dict['chan'])
-        out_dict['sweep_mode'] = int(resp_dict['sweep_mode'])
-        out_dict['sweep_range'] = int(resp_dict['sweep_range'])
-        out_dict['sweep_start'] = float(resp_dict['sweep_start'])
-        out_dict['sweep_end'] = float(resp_dict['sweep_end'])
-        out_dict['sweep_steps'] = int(resp_dict['sweep_steps'])
-        if resp_dict['current_compliance'] is not None:
-            out_dict['current_compliance'] = float(
-                resp_dict['current_compliance'])
+        if resp_dict["current_compliance"] is not None:
+            current_output = float(resp_dict["current_compliance"])
         else:
-            out_dict['current_compliance'] = None
-        if resp_dict['power_compliance'] is not None:
-            out_dict['power_compliance'] = float(
-                resp_dict['power_compliance'])
+            current_output = None
+
+        if resp_dict["power_compliance"] is not None:
+            power_compliance = float(resp_dict["power_compliance"])
         else:
-            out_dict['power_compliance'] = None
+            power_compliance = None
+
+        out_dict: SweepSteps = {
+            "chan": int(resp_dict["chan"]),
+            "sweep_mode": int(resp_dict["sweep_mode"]),
+            "sweep_range": int(resp_dict["sweep_range"]),
+            "sweep_start": float(resp_dict["sweep_start"]),
+            "sweep_end": float(resp_dict["sweep_end"]),
+            "sweep_steps": int(resp_dict["sweep_steps"]),
+            "current_compliance": current_output,
+            "power_compliance": power_compliance,
+        }
         return out_dict
+
+
+IVSweeper = KeysightB1500IVSweeper
+"""
+Alias for backwards compatibility
+"""
 
 
 class _ParameterWithStatus(Parameter):
@@ -541,7 +554,7 @@ class _ParameterWithStatus(Parameter):
 
 class _SpotMeasurementVoltageParameter(_ParameterWithStatus):
     def set_raw(self, value: ParamRawDataType) -> None:
-        smu = cast("B1517A", self.instrument)
+        smu = cast("KeysightB1517A", self.instrument)
 
         if smu._source_config["output_range"] is None:
             smu._source_config["output_range"] = constants.VOutputRange.AUTO
@@ -567,7 +580,7 @@ class _SpotMeasurementVoltageParameter(_ParameterWithStatus):
         )
 
     def get_raw(self) -> ParamRawDataType:
-        smu = cast("B1517A", self.instrument)
+        smu = cast("KeysightB1517A", self.instrument)
 
         msg = MessageBuilder().tv(
             chnum=smu.channels[0],
@@ -584,7 +597,7 @@ class _SpotMeasurementVoltageParameter(_ParameterWithStatus):
 
 class _SpotMeasurementCurrentParameter(_ParameterWithStatus):
     def set_raw(self, value: ParamRawDataType) -> None:
-        smu = cast("B1517A", self.instrument)
+        smu = cast("KeysightB1517A", self.instrument)
 
         if smu._source_config["output_range"] is None:
             smu._source_config["output_range"] = constants.IOutputRange.AUTO
@@ -610,7 +623,7 @@ class _SpotMeasurementCurrentParameter(_ParameterWithStatus):
         )
 
     def get_raw(self) -> ParamRawDataType:
-        smu = cast("B1517A", self.instrument)
+        smu = cast("KeysightB1517A", self.instrument)
 
         msg = MessageBuilder().ti(
             chnum=smu.channels[0],
@@ -625,7 +638,7 @@ class _SpotMeasurementCurrentParameter(_ParameterWithStatus):
         return parsed["value"]
 
 
-class B1517A(B1500Module):
+class KeysightB1517A(B1500Module):
     """
     Driver for Keysight B1517A Source/Monitor Unit module for B1500
     Semiconductor Parameter Analyzer.
@@ -642,7 +655,7 @@ class B1517A(B1500Module):
 
     def __init__(
         self,
-        parent: "qcodes.instrument_drivers.Keysight.keysightb1500.KeysightB1500",
+        parent: "KeysightB1500",
         name: Optional[str],
         slot_nr: int,
         **kwargs: Any,
@@ -661,7 +674,7 @@ class B1517A(B1500Module):
         self._meta_attrs += ['_measure_config', '_source_config',
                              '_timing_parameters']
 
-        self.add_submodule('iv_sweep', IVSweeper(self, 'iv_sweep'))
+        self.add_submodule("iv_sweep", KeysightB1500IVSweeper(self, "iv_sweep"))
         self.setup_fnc_already_run: bool = False
         self.power_line_frequency: int = 50
         self._average_coefficient: int = 1
@@ -1163,3 +1176,9 @@ class B1517A(B1500Module):
         self.root_instrument.clear_timer_count()
 
         self.setup_fnc_already_run = True
+
+
+B1517A = KeysightB1517A
+"""
+Alias for backwards compatibility
+"""
