@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -18,7 +18,7 @@ CHANNEL_COUNT = {
 WAVEFORM_FORMAT = {0:'byte', 1:'word', 4:'ascii'}
 ACQUISITION_TYPE = {0:'normal', 1:'peak', 2:'average', 3:'hresolution'}
 
-def interpret_preamble(preamble):
+def interpret_preamble(preamble: str):
     args = preamble.split(',')
     return {
         'waveform_format': WAVEFORM_FORMAT[int(args[0])],
@@ -159,16 +159,6 @@ class Waveform(InstrumentModule):
             docstring="Source for the waveform",
         )
 
-    def header(self):
-        """
-        Interpret the preamble holding the waveform properties
-
-        Returns
-        -------
-        dict
-        """
-        return interpret_preamble(self.preamble())
-
 class Channel(InstrumentChannel):
     def __init__(self, parent: 'InfiniiVision', name: str, channel: int, **kwargs: Any):
         self._channel = channel
@@ -286,7 +276,7 @@ class Channel(InstrumentChannel):
             docstring=f"Enable/disable the vernier (fine vertical adjustment)",
         )
 
-    def read(self, raw=False):
+    def read(self, raw: bool = False):
         complete = self.parent.acquire.complete()
         if not complete:
             return None
@@ -299,7 +289,7 @@ class Channel(InstrumentChannel):
         if raw:
             return data
 
-        header = self.parent.waveform.header()
+        header = interpret_preamble(self.parent.waveform.preamble())
         points = header['points']
         x = np.linspace(0, points*header['dt'], points, endpoint=False) + header['t0']
         y = (data - header['yref']) * header['dy'] + header['y0']
