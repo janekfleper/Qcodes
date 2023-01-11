@@ -10,26 +10,36 @@ from qcodes.instrument.parameter import Parameter
 from qcodes.utils.helpers import create_on_off_val_mapping
 
 CHANNEL_COUNT = {
-    'EDUX1052A': 2, 'EDUX1052G': 2,
-    'DSOX1202A': 2, 'DSOX1202G': 2,
-    'DSOX1204A': 4, 'DSOX1204G': 4,
+    "EDUX1052A": 2,
+    "EDUX1052G": 2,
+    "DSOX1202A": 2,
+    "DSOX1202G": 2,
+    "DSOX1204A": 4,
+    "DSOX1204G": 4,
 }
 
-WAVEFORM_FORMAT = {0:'byte', 1:'word', 4:'ascii'}
-ACQUISITION_TYPE = {0:'normal', 1:'peak', 2:'average', 3:'hresolution'}
+WAVEFORM_FORMAT = {0: "byte", 1: "word", 4: "ascii"}
+ACQUISITION_TYPE = {0: "normal", 1: "peak", 2: "average", 3: "hresolution"}
+
 
 def interpret_preamble(preamble: str):
-    args = preamble.split(',')
+    args = preamble.split(",")
     return {
-        'waveform_format': WAVEFORM_FORMAT[int(args[0])],
-        'acquisition_type': ACQUISITION_TYPE[int(args[1])],
-        'points': int(args[2]), 'averages': int(args[3]),
-        'dt': float(args[4]), 't0': float(args[5]), 'tref': int(args[6]),
-        'dy': float(args[7]), 'y0': float(args[8]), 'yref': int(args[9]),
+        "waveform_format": WAVEFORM_FORMAT[int(args[0])],
+        "acquisition_type": ACQUISITION_TYPE[int(args[1])],
+        "points": int(args[2]),
+        "averages": int(args[3]),
+        "dt": float(args[4]),
+        "t0": float(args[5]),
+        "tref": int(args[6]),
+        "dy": float(args[7]),
+        "y0": float(args[8]),
+        "yref": int(args[9]),
     }
 
+
 class Acquire(InstrumentModule):
-    def __init__(self, parent: 'InfiniiVision', name: str, **kwargs: Any):
+    def __init__(self, parent: "InfiniiVision", name: str, **kwargs: Any):
         super().__init__(parent, name, **kwargs)
 
         self.complete = Parameter(
@@ -37,7 +47,7 @@ class Acquire(InstrumentModule):
             instrument=self,
             set_cmd=False,
             get_cmd=":acquire:complete?",
-            get_parser=lambda x: bool(int(x)//100),
+            get_parser=lambda x: bool(int(x) // 100),
             docstring="Acquisition completion status",
         )
 
@@ -87,8 +97,9 @@ class Acquire(InstrumentModule):
             docstring="Acquisition type",
         )
 
+
 class Waveform(InstrumentModule):
-    def __init__(self, parent: 'InfiniiVision', name: str, **kwargs: Any):
+    def __init__(self, parent: "InfiniiVision", name: str, **kwargs: Any):
         super().__init__(parent, name, **kwargs)
 
         self.byteorder = Parameter(
@@ -109,11 +120,7 @@ class Waveform(InstrumentModule):
             docstring="Count used for the acquired waveform",
         )
 
-        self.data = Function(
-            name="data",
-            instrument=self,
-            call_cmd=":waveform:data?"
-        )
+        self.data = Function(name="data", instrument=self, call_cmd=":waveform:data?")
 
         self.format = Parameter(
             name="format",
@@ -159,8 +166,9 @@ class Waveform(InstrumentModule):
             docstring="Source for the waveform",
         )
 
+
 class Channel(InstrumentChannel):
-    def __init__(self, parent: 'InfiniiVision', name: str, channel: int, **kwargs: Any):
+    def __init__(self, parent: "InfiniiVision", name: str, channel: int, **kwargs: Any):
         self._channel = channel
         super().__init__(parent, name, **kwargs)
 
@@ -283,16 +291,23 @@ class Channel(InstrumentChannel):
 
         self.parent.waveform.source(f"channel{self._channel}")
         self.parent.waveform.data()
-        params = dict(datatype='H', is_big_endian=True, container=np.ndarray,
-                      header_fmt='ieee', expect_termination=True)
-        data = self.root_instrument.visa_handle.read_binary_values(**params).astype(np.int32)
+        params = dict(
+            datatype="H",
+            is_big_endian=True,
+            container=np.ndarray,
+            header_fmt="ieee",
+            expect_termination=True,
+        )
+        data = self.root_instrument.visa_handle.read_binary_values(**params).astype(
+            np.int32
+        )
         if raw:
             return data
 
         header = interpret_preamble(self.parent.waveform.preamble())
-        points = header['points']
-        x = np.linspace(0, points*header['dt'], points, endpoint=False) + header['t0']
-        y = (data - header['yref']) * header['dy'] + header['y0']
+        points = header["points"]
+        x = np.linspace(0, points * header["dt"], points, endpoint=False) + header["t0"]
+        y = (data - header["yref"]) * header["dy"] + header["y0"]
         return y, x, header
 
 
@@ -321,32 +336,16 @@ class InfiniiVision(VisaInstrument):
         super().__init__(name, address, timeout=timeout, terminator="\n", **kwargs)
         self.connect_message()
 
-        self.model = self.IDN()['model']
+        self.model = self.IDN()["model"]
         self.n_channels = CHANNEL_COUNT[self.model]
 
-        self.digitize = Function(
-            name="digitize",
-            instrument=self,
-            call_cmd=":digitize"
-        )
+        self.digitize = Function(name="digitize", instrument=self, call_cmd=":digitize")
 
-        self.run = Function(
-            name="run",
-            instrument=self,
-            call_cmd=":run"
-        )
+        self.run = Function(name="run", instrument=self, call_cmd=":run")
 
-        self.single = Function(
-            name="single",
-            instrument=self,
-            call_cmd=":single"
-        )
+        self.single = Function(name="single", instrument=self, call_cmd=":single")
 
-        self.stop = Function(
-            name="stop",
-            instrument=self,
-            call_cmd=":stop"
-        )
+        self.stop = Function(name="stop", instrument=self, call_cmd=":stop")
 
         self.recall = Parameter(
             name="recall",
