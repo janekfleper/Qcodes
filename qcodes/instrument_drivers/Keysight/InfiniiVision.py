@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
@@ -22,7 +22,7 @@ WAVEFORM_FORMAT = {0: "byte", 1: "word", 4: "ascii"}
 ACQUISITION_TYPE = {0: "normal", 1: "peak", 2: "average", 3: "hresolution"}
 
 
-def interpret_preamble(preamble: str):
+def interpret_preamble(preamble: str) -> Dict[str, Any]:
     args = preamble.split(",")
     return {
         "waveform_format": WAVEFORM_FORMAT[int(args[0])],
@@ -284,7 +284,7 @@ class Channel(InstrumentChannel):
             docstring=f"Enable/disable the vernier (fine vertical adjustment)",
         )
 
-    def get_data(self):
+    def get_data(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Read the time axis and trace from the oscilloscope
 
