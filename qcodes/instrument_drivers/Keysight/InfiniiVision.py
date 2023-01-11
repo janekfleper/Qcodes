@@ -284,31 +284,34 @@ class Channel(InstrumentChannel):
             docstring=f"Enable/disable the vernier (fine vertical adjustment)",
         )
 
-    def read(self, raw: bool = False):
-        complete = self.parent.acquire.complete()
-        if not complete:
-            return None
+    def get_data(self):
+        """
+        Read the time axis and trace from the oscilloscope
 
-        self.parent.waveform.source(f"channel{self._channel}")
-        self.parent.waveform.data()
-        params = dict(
+        The acquisition must be completed before running this method.
+        """
+        waveform = self.root_instrument.waveform
+        waveform.source(f"channel{self._channel}")
+        waveform.data()
+
+        data = self.root_instrument.visa_handle.read_binary_values(
             datatype="H",
             is_big_endian=True,
             container=np.ndarray,
             header_fmt="ieee",
             expect_termination=True,
-        )
-        data = self.root_instrument.visa_handle.read_binary_values(**params).astype(
-            np.int32
-        )
-        if raw:
-            return data
+        ).astype(np.int32)
 
-        header = interpret_preamble(self.parent.waveform.preamble())
-        points = header["points"]
-        x = np.linspace(0, points * header["dt"], points, endpoint=False) + header["t0"]
+        header = interpret_preamble(waveform.preamble())
+        n_points = header["points"]
+        t = np.linspace(
+            header["t0"],
+            header["t0"] + n_points * header["dt"],
+            n_points,
+            endpoint=False,
+        )
         y = (data - header["yref"]) * header["dy"] + header["y0"]
-        return y, x, header
+        return t, y
 
 
 class InfiniiVision(VisaInstrument):
