@@ -227,8 +227,8 @@ class Channel(InstrumentChannel):
             docstring=f"Invert channel {channel}",
         )
 
-        self.label = Parameter(
-            name="label",
+        self.channel_label = Parameter(
+            name="channel_label",
             instrument=self,
             set_cmd=f":channel{channel}:label {{}}",
             get_cmd=f":channel{channel}:label?",
