@@ -22,13 +22,13 @@ jobs:
       DISPLAY: ':99.0'
 
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3.3.0
       with:
         submodules: true
     - name: setup ubuntu-latest xvfb
       uses: ./.github/actions/setup-ubuntu-latest-xvfb
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v4.3.1
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'

@@ -114,13 +114,13 @@ class DelegateParameter(Parameter):
                 self._parameter._from_value_to_raw_value(value)
             )
 
-        def _set_from_raw_value(self, value: ParamRawDataType) -> None:
+        def _set_from_raw_value(self, raw_value: ParamRawDataType) -> None:
             if self._parameter.source is None:
                 raise TypeError(
                     "Cannot set the cache of a DelegateParameter "
                     "that delegates to None"
                 )
-            self._parameter.source.cache.set(value)
+            self._parameter.source.cache.set(raw_value)
 
         def _update_with(
             self,
@@ -256,3 +256,20 @@ class DelegateParameter(Parameter):
         )
         snapshot.update({"source_parameter": source_parameter_snapshot})
         return snapshot
+
+    def validate(self, value: ParamDataType) -> None:
+        """
+        Validate the supplied value.
+        If it has a source parameter, validate the value as well with the source validator.
+
+        Args:
+            value: value to validate
+
+        Raises:
+            TypeError: If the value is of the wrong type.
+            ValueError: If the value is outside the bounds specified by the
+               validator.
+        """
+        super().validate(value)
+        if self.source is not None:
+            self.source.validate(self._from_value_to_raw_value(value))

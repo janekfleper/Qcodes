@@ -1,11 +1,13 @@
 import json
+import logging
 import os
+from pathlib import Path
 
 import pytest
 import xarray as xr
 
 import qcodes
-from qcodes.dataset import load_from_netcdf, new_data_set
+from qcodes.dataset import get_data_export_path, load_from_netcdf, new_data_set
 from qcodes.dataset.descriptions.dependencies import InterDependencies_
 from qcodes.dataset.descriptions.param_spec import ParamSpecBase
 from qcodes.dataset.descriptions.versioning import serialization as serial
@@ -13,9 +15,8 @@ from qcodes.dataset.export_config import DataExportType
 from qcodes.dataset.linked_datasets.links import links_to_str
 
 
-@pytest.mark.usefixtures("experiment")
 @pytest.fixture(name="mock_empty_dataset")
-def _make_mock_empty_dataset():
+def _make_mock_empty_dataset(experiment):
     dataset = new_data_set("dataset")
     xparam = ParamSpecBase("x", "numeric")
     yparam = ParamSpecBase("y", "numeric")
@@ -28,9 +29,8 @@ def _make_mock_empty_dataset():
     return dataset
 
 
-@pytest.mark.usefixtures('experiment')
 @pytest.fixture(name="mock_dataset")
-def _make_mock_dataset():
+def _make_mock_dataset(experiment):
     dataset = new_data_set("dataset")
     xparam = ParamSpecBase("x", 'numeric')
     yparam = ParamSpecBase("y", 'numeric')
@@ -46,9 +46,8 @@ def _make_mock_dataset():
     return dataset
 
 
-@pytest.mark.usefixtures('experiment')
 @pytest.fixture(name="mock_dataset_nonunique")
-def _make_mock_dataset_nonunique_index():
+def _make_mock_dataset_nonunique_index(experiment):
     dataset = new_data_set("dataset")
     xparam = ParamSpecBase("x", 'numeric')
     yparam = ParamSpecBase("y", 'numeric')
@@ -64,9 +63,8 @@ def _make_mock_dataset_nonunique_index():
     return dataset
 
 
-@pytest.mark.usefixtures("experiment")
 @pytest.fixture(name="mock_dataset_label_unit")
-def _make_mock_dataset_label_unit():
+def _make_mock_dataset_label_unit(experiment):
     dataset = new_data_set("dataset")
     xparam = ParamSpecBase("x", "numeric", label="x label", unit="x unit")
     yparam = ParamSpecBase("y", "numeric", label="y label", unit="y unit")
@@ -81,9 +79,8 @@ def _make_mock_dataset_label_unit():
     return dataset
 
 
-@pytest.mark.usefixtures("experiment")
 @pytest.fixture(name="mock_dataset_complex")
-def _make_mock_dataset_complex():
+def _make_mock_dataset_complex(experiment):
     dataset = new_data_set("dataset")
     xparam = ParamSpecBase("x", "numeric")
     yparam = ParamSpecBase("y", "complex")
@@ -97,9 +94,8 @@ def _make_mock_dataset_complex():
     return dataset
 
 
-@pytest.mark.usefixtures("experiment")
 @pytest.fixture(name="mock_dataset_inverted_coords")
-def _make_mock_dataset_inverted_coords():
+def _make_mock_dataset_inverted_coords(experiment):
     # this dataset is constructed such
     # that the two z parameters have inverted
     # coordinates. You almost certainly
@@ -145,7 +141,6 @@ def test_write_data_to_text_file_save(tmp_path_factory):
         assert f.readlines() == ['0.0\t1.0\n']
 
 
-@pytest.mark.usefixtures('experiment')
 def test_write_data_to_text_file_save_multi_keys(tmp_path_factory, mock_dataset):
     tmp_path = tmp_path_factory.mktemp("data_to_text_file_save_multi_keys")
     path = str(tmp_path)
@@ -157,7 +152,6 @@ def test_write_data_to_text_file_save_multi_keys(tmp_path_factory, mock_dataset)
         assert f.readlines() == ['0.0\t2.0\n']
 
 
-@pytest.mark.usefixtures('experiment')
 def test_write_data_to_text_file_save_single_file(tmp_path_factory, mock_dataset):
     tmp_path = tmp_path_factory.mktemp("to_text_file_save_single_file")
     path = str(tmp_path)
@@ -193,7 +187,6 @@ def test_write_data_to_text_file_length_exception(tmp_path):
                                         single_file_name='yz')
 
 
-@pytest.mark.usefixtures('experiment')
 def test_write_data_to_text_file_name_exception(tmp_path, mock_dataset):
     temp_dir = str(tmp_path)
     with pytest.raises(Exception, match='desired file name'):
@@ -201,11 +194,14 @@ def test_write_data_to_text_file_name_exception(tmp_path, mock_dataset):
                                              single_file_name=None)
 
 
-@pytest.mark.usefixtures('experiment')
-def test_export_csv(tmp_path_factory, mock_dataset):
+def test_export_csv(tmp_path_factory, mock_dataset, caplog):
     tmp_path = tmp_path_factory.mktemp("export_csv")
     path = str(tmp_path)
-    mock_dataset.export(export_type="csv", path=path, prefix="qcodes_")
+    with caplog.at_level(logging.INFO):
+        mock_dataset.export(export_type="csv", path=path, prefix="qcodes_")
+
+    assert "Executing on_export callback log_exported_ds" in caplog.messages
+    assert any("Dataset has been exported to" in mes for mes in caplog.messages)
 
     mock_dataset.add_metadata("metadata_added_after_export", 69)
 
@@ -217,11 +213,15 @@ def test_export_csv(tmp_path_factory, mock_dataset):
         assert f.readlines() == ['0.0\t1.0\t2.0\n']
 
 
-@pytest.mark.usefixtures('experiment')
-def test_export_netcdf(tmp_path_factory, mock_dataset):
+def test_export_netcdf(tmp_path_factory, mock_dataset, caplog):
     tmp_path = tmp_path_factory.mktemp("export_netcdf")
     path = str(tmp_path)
-    mock_dataset.export(export_type="netcdf", path=path, prefix="qcodes_")
+    with caplog.at_level(logging.INFO):
+        mock_dataset.export(export_type="netcdf", path=path, prefix="qcodes_")
+
+    assert "Executing on_export callback log_exported_ds" in caplog.messages
+    assert any("Dataset has been exported to" in mes for mes in caplog.messages)
+
     mock_dataset.add_metadata("metadata_added_after_export", 69)
 
     expected_path = f"qcodes_{mock_dataset.captured_run_id}_{mock_dataset.guid}.nc"
@@ -241,7 +241,21 @@ def test_export_netcdf(tmp_path_factory, mock_dataset):
     assert mock_dataset.export_info.export_paths["nc"] == file_path
 
 
-@pytest.mark.usefixtures("experiment")
+def test_export_netcdf_default_dir(tmp_path_factory, mock_dataset):
+    qcodes.config.dataset.export_path = "{db_location}"
+    mock_dataset.export(export_type="netcdf", prefix="qcodes_")
+    export_path = Path(mock_dataset.export_info.export_paths["nc"])
+    exported_dir = export_path.parent
+    export_dir_stem = exported_dir.stem
+    database_path = Path(qcodes.config.core.db_location)
+    database_file_name = database_path.name
+    database_dir = Path(qcodes.config.core.db_location).parent
+    assert qcodes.config.dataset.export_path == "{db_location}"
+    assert exported_dir.parent == database_dir
+    assert export_dir_stem == database_file_name.replace(".", "_")
+    assert exported_dir == get_data_export_path()
+
+
 def test_export_netcdf_csv(tmp_path_factory, mock_dataset):
 
     tmp_path = tmp_path_factory.mktemp("export_netcdf")
@@ -283,7 +297,6 @@ def test_export_netcdf_csv(tmp_path_factory, mock_dataset):
     assert loaded_new_xr_ds.attrs["metadata_added_after_export_2"] == 696
 
 
-@pytest.mark.usefixtures("experiment")
 def test_export_netcdf_complex_data(tmp_path_factory, mock_dataset_complex):
 
     tmp_path = tmp_path_factory.mktemp("export_netcdf")
@@ -302,7 +315,6 @@ def test_export_netcdf_complex_data(tmp_path_factory, mock_dataset_complex):
     assert df.y.values.tolist() == [1.0 + 1j]
 
 
-@pytest.mark.usefixtures('experiment')
 def test_export_no_or_nonexistent_type_specified(tmp_path_factory, mock_dataset):
     with pytest.raises(ValueError, match="No data export type specified"):
         mock_dataset.export()
@@ -311,21 +323,19 @@ def test_export_no_or_nonexistent_type_specified(tmp_path_factory, mock_dataset)
         mock_dataset.export(export_type="foo")
 
 
-@pytest.mark.usefixtures('experiment')
 def test_export_from_config(tmp_path_factory, mock_dataset, mocker):
     tmp_path = tmp_path_factory.mktemp("export_from_config")
     path = str(tmp_path)
     mock_type = mocker.patch("qcodes.dataset.data_set_protocol.get_data_export_type")
     mock_path = mocker.patch("qcodes.dataset.data_set_protocol.get_data_export_path")
     mock_type.return_value = DataExportType.CSV
-    mock_path.return_value = path
+    mock_path.return_value = tmp_path
     mock_dataset.export()
     assert os.listdir(path) == [
         f"qcodes_{mock_dataset.captured_run_id}_{mock_dataset.guid}.csv"
     ]
 
 
-@pytest.mark.usefixtures("experiment")
 def test_export_from_config_set_name_elements(tmp_path_factory, mock_dataset, mocker):
     tmp_path = tmp_path_factory.mktemp("export_from_config")
     path = str(tmp_path)
@@ -335,7 +345,7 @@ def test_export_from_config_set_name_elements(tmp_path_factory, mock_dataset, mo
         "qcodes.dataset.data_set_protocol.get_data_export_name_elements"
     )
     mock_type.return_value = DataExportType.CSV
-    mock_path.return_value = path
+    mock_path.return_value = tmp_path
     mock_name_elements.return_value = [
         "captured_run_id",
         "guid",
